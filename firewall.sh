@@ -30,42 +30,6 @@ skynetevents="${skynetloc}/events.log"
 skynetipset="${skynetloc}/skynet.ipset"
 LOCK_FILE="/tmp/skynet.lock"
 
-# Default to the NVRAM’s WAN interface name, but if the protocol is PPPoE, override to ppp0
-iface="$(nvram get wan0_ifname)"
-[ "$(nvram get wan0_proto)" = "pppoe" ] && iface="ppp0"
-
-trap 'Release_Lock' INT TERM EXIT
-
-case "$1" in
-	uninstall|disable) ;;  # Skip NTP check for these modes
-	*)
-		ntptimer="0"
-		while [ "$(nvram get ntp_ready)" != "1" ] && [ "$ntptimer" -lt "300" ]; do
-			ntptimer=$((ntptimer + 1))
-			if [ "$ntptimer" -eq 60 ]; then
-				echo
-				Log info -s "Waiting for NTP to synchronize..."
-			fi
-			sleep 1
-		done
-		if [ "$ntptimer" -ge 300 ]; then
-			Log error -s "NTP synchronization failed after 5 minutes. Please check your configuration!"
-			echo
-			exit 1
-		fi
-	;;
-esac
-stime="$(date +%s)"
-
-# If we haven’t yet determined an install directory and the script is running in a real terminal,
-# force the command to “install” so the installer logic kicks in automatically.
-if [ -z "${skynetloc}" ] && tty >/dev/null 2>&1; then
-	set "install"
-fi
-
-###############
-#- Functions -#
-###############
 Log() {
 	# initialize defaults
 	opt_s=0
@@ -114,6 +78,42 @@ Log() {
 	fi
 }
 
+# Default to the NVRAM’s WAN interface name, but if the protocol is PPPoE, override to ppp0
+iface="$(nvram get wan0_ifname)"
+[ "$(nvram get wan0_proto)" = "pppoe" ] && iface="ppp0"
+
+trap 'Release_Lock' INT TERM EXIT
+
+case "$1" in
+	uninstall|disable) ;;  # Skip NTP check for these modes
+	*)
+		ntptimer="0"
+		while [ "$(nvram get ntp_ready)" != "1" ] && [ "$ntptimer" -lt "300" ]; do
+			ntptimer=$((ntptimer + 1))
+			if [ "$ntptimer" -eq 60 ]; then
+				echo
+				Log info -s "Waiting for NTP to synchronize..."
+			fi
+			sleep 1
+		done
+		if [ "$ntptimer" -ge 300 ]; then
+			Log error -s "NTP synchronization failed after 5 minutes. Please check your configuration!"
+			echo
+			exit 1
+		fi
+	;;
+esac
+stime="$(date +%s)"
+
+# If we haven’t yet determined an install directory and the script is running in a real terminal,
+# force the command to “install” so the installer logic kicks in automatically.
+if [ -z "${skynetloc}" ] && tty >/dev/null 2>&1; then
+	set "install"
+fi
+
+###############
+#- Functions -#
+###############
 Check_Lock() {
 	# Open FD 9 for locking
 	exec 9<>"$LOCK_FILE"
