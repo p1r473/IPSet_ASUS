@@ -66,6 +66,53 @@ fi
 ###############
 #- Functions -#
 ###############
+Log() {
+	# initialize defaults
+	opt_s=0
+	tag="Skynet"
+	prefix=""
+
+	# parse flags and level keywords
+	while [ "$#" -gt 0 ]; do
+		case "$1" in
+		-s)
+			# log to syslog and stderr
+			opt_s=1
+			shift
+			;;
+		-t)
+			# custom syslog tag
+			shift
+			if [ "$#" -gt 0 ]; then
+				tag="$1"
+				shift
+			fi
+			;;
+		info)
+			prefix="[i] "
+			shift
+			;;
+		error)
+			prefix="[✘] "
+			shift
+			;;
+		*)
+			break
+			;;
+		esac
+	done
+
+	# finalize message
+	msg="$prefix$*"
+
+	if [ "$opt_s" -eq 1 ]; then
+		# logger -s echoes to stderr
+		logger -s -t "$tag" "$msg"
+	else
+		logger -t "$tag" "$msg"
+		echo "$msg"
+	fi
+}
 
 Check_Lock() {
 	# Open FD 9 for locking
@@ -1452,54 +1499,6 @@ Show_Associated_Domains() {
 Is_Enabled() {
 	# $1 = variable value
 	[ "$1" = "enabled" ]
-}
-
-Log() {
-	# initialize defaults
-	opt_s=0
-	tag="Skynet"
-	prefix=""
-
-	# parse flags and level keywords
-	while [ "$#" -gt 0 ]; do
-		case "$1" in
-		-s)
-			# log to syslog and stderr
-			opt_s=1
-			shift
-			;;
-		-t)
-			# custom syslog tag
-			shift
-			if [ "$#" -gt 0 ]; then
-				tag="$1"
-				shift
-			fi
-			;;
-		info)
-			prefix="[i] "
-			shift
-			;;
-		error)
-			prefix="[✘] "
-			shift
-			;;
-		*)
-			break
-			;;
-		esac
-	done
-
-	# finalize message
-	msg="$prefix$*"
-
-	if [ "$opt_s" -eq 1 ]; then
-		# logger -s echoes to stderr
-		logger -s -t "$tag" "$msg"
-	else
-		logger -t "$tag" "$msg"
-		echo "$msg"
-	fi
 }
 
 Run_Stats() {
